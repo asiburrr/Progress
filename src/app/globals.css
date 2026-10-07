@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --ink: #17201c;
+  --muted: #626965;
+  --line: #ebe6dc;
+  --brand: #0f6b4f;
+  --chip: #f3efe7;
+  --chip-hover: #e8e2d5;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font: 16px / 1.6 "Baloo Da 2", "Hind Siliguri", "Noto Sans Bengali", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8d0c2;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #beb5a4;
+}
