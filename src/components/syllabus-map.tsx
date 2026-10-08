@@ -326,6 +326,8 @@ export function SyllabusMap({
         ctx.font = `800 15px ${FONT}`;
         ctx.textAlign = "center";
 
+        const chPercent = chTopics.length > 0 ? Math.round((doneCount / chTopics.length) * 100) : 0;
+
         if (isComplete) {
           ctx.fillStyle = "#ffffff";
           ctx.fillText(chLabel, cx, cy - 4);
@@ -339,14 +341,14 @@ export function SyllabusMap({
 
           ctx.font = `700 12.5px ${FONT}`;
           ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-          ctx.fillText(`${bnNum(doneCount)}/${bnNum(chTopics.length)}`, cx, cy + 16);
+          ctx.fillText(`${bnNum(chPercent)}%`, cx, cy + 16);
         } else {
           ctx.fillStyle = t.ink;
           ctx.fillText(chLabel, cx, cy - 4);
 
           ctx.font = `700 12.5px ${FONT}`;
           ctx.fillStyle = ratio > 0 ? t.v1 : t.muted;
-          ctx.fillText(`${bnNum(doneCount)}/${bnNum(chTopics.length)}`, cx, cy + 16);
+          ctx.fillText(`${bnNum(chPercent)}%`, cx, cy + 16);
         }
       }
     });
@@ -818,7 +820,7 @@ export function SyllabusMap({
                       >
                         {isComplete
                           ? "✓ শেষ"
-                          : `${bnNum(doneCount)}/${bnNum(chTopics.length)}`}
+                          : `${bnNum(Math.round(ratio * 100))}%`}
                       </text>
                     </g>
                   )}
@@ -845,14 +847,16 @@ export function SyllabusMap({
                   <span className="text-[#3ddc97]">✓ সম্পূর্ণ</span>
                 )}
               </div>
-              <p className="text-[10px] opacity-80">
-                {bnNum(
-                  hoveredChapter.topics.filter((t) => completedTopics.has(t.id))
-                    .length
-                )}
-                /{bnNum(hoveredChapter.topics.length)} টপিক শেষ • ট্যাপ করে
-                সম্পন্ন বা বিস্তারিত দেখুন
-              </p>
+              {(() => {
+                const done = hoveredChapter.topics.filter((t) => completedTopics.has(t.id)).length;
+                const total = hoveredChapter.topics.length;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <p className="text-[10px] opacity-80">
+                    {bnNum(pct)}% সম্পন্ন ({bnNum(done)}/{bnNum(total)} টপিক) • ট্যাপ করে বিস্তারিত দেখুন
+                  </p>
+                );
+              })()}
             </div>
           )}
         </div>

@@ -139,6 +139,10 @@ export function ChapterSelector({
             completedInChapter === chapter.topics.length;
           const isChapterPartial =
             completedInChapter > 0 && !isChapterComplete;
+          const chapterPercent =
+            chapter.topics.length > 0
+              ? Math.round((completedInChapter / chapter.topics.length) * 100)
+              : 0;
 
           return (
             <div
@@ -154,7 +158,7 @@ export function ChapterSelector({
                 <div
                   onClick={() => {
                     onFocusChapter(chapter.id);
-                    setExpandedChapterId(isExpanded ? null : chapter.id);
+                    setExpandedChapterId(chapter.id);
                   }}
                   className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
                 >
@@ -162,6 +166,8 @@ export function ChapterSelector({
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggleChapter(chapter);
+                      onFocusChapter(chapter.id);
+                      setExpandedChapterId(chapter.id);
                     }}
                     title={
                       isChapterComplete
@@ -199,7 +205,7 @@ export function ChapterSelector({
                           : "text-[#626965] bg-white border border-[#ebe6dc]"
                       }`}
                   >
-                    {bnNum(completedInChapter)}/{bnNum(chapter.topics.length)}
+                    {bnNum(chapterPercent)}%
                   </span>
                   <button
                     onClick={() =>
