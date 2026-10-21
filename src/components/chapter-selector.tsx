@@ -186,7 +186,7 @@ export function ChapterSelector({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-[#0f6b4f] bg-white px-1.5 py-0.5 rounded border border-[#ebe6dc] font-mono">
+                      <span className="text-[10px] font-bold text-[#0f6b4f] bg-white px-1.5 py-0.5 rounded border border-[#ebe6dc] whitespace-nowrap flex-shrink-0">
                         {chapter.codeName}
                       </span>
                       <h4 className="text-xs font-bold text-[#17201c] truncate">

@@ -96,7 +96,7 @@ function generateContiguousLayout(count: number, width = 620, height = 430) {
 }
 
 const bio1Layout = generateContiguousLayout(12);
-const BIO_1_CHAPTERS: Chapter[] = [
+export const BIO_1_CHAPTERS: Chapter[] = [
   {
     id: "b1-c1",
     number: 1,
@@ -335,7 +335,7 @@ const BIO_1_CHAPTERS: Chapter[] = [
 ];
 
 const bio2Layout = generateContiguousLayout(12);
-const BIO_2_CHAPTERS: Chapter[] = [
+export const BIO_2_CHAPTERS: Chapter[] = [
   {
     id: "b2-c1",
     number: 1,
@@ -577,7 +577,7 @@ const BIO_2_CHAPTERS: Chapter[] = [
 ];
 
 const phy1Layout = generateContiguousLayout(10);
-const PHY_1_CHAPTERS: Chapter[] = [
+export const PHY_1_CHAPTERS: Chapter[] = [
   {
     id: "p1-c1",
     number: 1,
@@ -765,7 +765,7 @@ const PHY_1_CHAPTERS: Chapter[] = [
 ];
 
 const phy2Layout = generateContiguousLayout(11);
-const PHY_2_CHAPTERS: Chapter[] = [
+export const PHY_2_CHAPTERS: Chapter[] = [
   {
     id: "p2-c1",
     number: 1,
@@ -971,7 +971,7 @@ const PHY_2_CHAPTERS: Chapter[] = [
 ];
 
 const chem1Layout = generateContiguousLayout(5);
-const CHEM_1_CHAPTERS: Chapter[] = [
+export const CHEM_1_CHAPTERS: Chapter[] = [
   {
     id: "c1-c1",
     number: 1,
@@ -1071,7 +1071,7 @@ const CHEM_1_CHAPTERS: Chapter[] = [
 ];
 
 const chem2Layout = generateContiguousLayout(5);
-const CHEM_2_CHAPTERS: Chapter[] = [
+export const CHEM_2_CHAPTERS: Chapter[] = [
   {
     id: "c2-c1",
     number: 1,
@@ -1187,7 +1187,7 @@ const CHEM_2_CHAPTERS: Chapter[] = [
 ];
 
 const math1Layout = generateContiguousLayout(10);
-const MATH_1_CHAPTERS: Chapter[] = [
+export const MATH_1_CHAPTERS: Chapter[] = [
   {
     id: "m1-c1",
     number: 1,
@@ -1374,7 +1374,7 @@ const MATH_1_CHAPTERS: Chapter[] = [
 ];
 
 const math2Layout = generateContiguousLayout(10);
-const MATH_2_CHAPTERS: Chapter[] = [
+export const MATH_2_CHAPTERS: Chapter[] = [
   {
     id: "m2-c1",
     number: 1,
@@ -1552,7 +1552,7 @@ const MATH_2_CHAPTERS: Chapter[] = [
 ];
 
 const ictLayout = generateContiguousLayout(6);
-const ICT_CHAPTERS: Chapter[] = [
+export const ICT_CHAPTERS: Chapter[] = [
   {
     id: "ict-c1",
     number: 1,

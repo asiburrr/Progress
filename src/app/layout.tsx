@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 import { AppProviders } from "@/providers/app-providers";
 
 export const metadata: Metadata = {
-  title: "Battles Of Biology • এইচএসসি সিলেবাস প্রগ্রেস ম্যাপ",
-  description: "Battles Of Biology — এইচএসসি জীববিজ্ঞান ও বিজ্ঞান সিলেবাসের কতটুকু সম্পন্ন হয়েছে হেক্সাগন ম্যাপে দেখুন ও প্রগ্রেস কার্ড ডাউনলোড করুন।",
+  title: "Battles Of Biology - প্রগ্রেস ট্র্যাকার",
+  description: "Battles Of Biology — সিলেবাসের কতটুকু সম্পন্ন হয়েছে দেখুন এবং প্রগ্রেস কার্ড ডাউনলোড করুন।",
   icons: {
     icon: "/bob-logo.svg",
     shortcut: "/bob-logo.svg",

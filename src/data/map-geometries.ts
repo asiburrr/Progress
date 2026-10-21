@@ -216,9 +216,16 @@ export function getHexagonGeometries(count: number, width = 840, height = 540): 
   } else if (count <= 8) {
     cols = 4;
     rows = 2;
+  } else if (count > 16) {
+    cols = 6;
+    rows = Math.ceil(count / 6);
+  } else if (count > 12) {
+    cols = 5;
+    rows = Math.ceil(count / 5);
   }
 
-  const hexRadius = count <= 6 ? 110 : count <= 8 ? 92 : 82;
+  const baseRadius = count <= 6 ? 110 : count <= 8 ? 92 : count > 16 ? 68 : count > 12 ? 74 : 82;
+  const hexRadius = baseRadius;
   const hexWidth = Math.sqrt(3) * hexRadius;
   const hexHeight = 2 * hexRadius;
   const vertSpacing = hexHeight * 0.75;
@@ -229,7 +236,7 @@ export function getHexagonGeometries(count: number, width = 840, height = 540): 
   const startY = (height - spanY) / 2 + hexRadius;
 
   const items: TerritoryGeometry[] = [];
-  const gap = 4;
+  const gap = count > 16 ? 2.5 : 4;
 
   for (let i = 0; i < count; i++) {
     const r = Math.floor(i / cols);
@@ -248,8 +255,8 @@ export function getHexagonGeometries(count: number, width = 840, height = 540): 
       const hy = cy + (hexRadius - gap) * Math.sin(angle);
       path += (a === 0 ? "M " : " L ") + `${Math.round(hx)},${Math.round(hy)}`;
 
-      const ihx = cx + (hexRadius - gap - 9) * Math.cos(angle);
-      const ihy = cy + (hexRadius - gap - 9) * Math.sin(angle);
+      const ihx = cx + (hexRadius - gap - (count > 16 ? 6 : 9)) * Math.cos(angle);
+      const ihy = cy + (hexRadius - gap - (count > 16 ? 6 : 9)) * Math.sin(angle);
       innerContour += (a === 0 ? "M " : " L ") + `${Math.round(ihx)},${Math.round(ihy)}`;
     }
     path += " Z";
@@ -278,10 +285,16 @@ export function getMetroGeometries(count: number, width = 840, height = 540): Te
   if (count <= 6) {
     cols = 3;
     rows = 2;
+  } else if (count > 16) {
+    cols = 6;
+    rows = Math.ceil(count / 6);
+  } else if (count > 12) {
+    cols = 5;
+    rows = Math.ceil(count / 5);
   }
 
   const colWidth = availW / (cols - 1);
-  const rowHeight = availH / (rows - 1);
+  const rowHeight = availH / (Math.max(rows - 1, 1));
   const items: TerritoryGeometry[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -292,9 +305,9 @@ export function getMetroGeometries(count: number, width = 840, height = 540): Te
     const cx = padX + c * colWidth;
     const cy = padY + r * rowHeight;
 
-    const rx = 64;
-    const ry = 48;
-    const corner = 16;
+    const rx = count > 16 ? 42 : count > 12 ? 52 : 64;
+    const ry = count > 16 ? 32 : count > 12 ? 38 : 48;
+    const corner = count > 16 ? 10 : 16;
 
     const x0 = cx - rx;
     const x1 = cx + rx;
@@ -303,10 +316,10 @@ export function getMetroGeometries(count: number, width = 840, height = 540): Te
 
     const path = `M ${x0 + corner},${y0} L ${x1 - corner},${y0} Q ${x1},${y0} ${x1},${y0 + corner} L ${x1},${y1 - corner} Q ${x1},${y1} ${x1 - corner},${y1} L ${x0 + corner},${y1} Q ${x0},${y1} ${x0},${y1 - corner} L ${x0},${y0 + corner} Q ${x0},${y0} ${x0 + corner},${y0} Z`;
 
-    const ix0 = cx - rx + 6;
-    const ix1 = cx + rx - 6;
-    const iy0 = cy - ry + 6;
-    const iy1 = cy + ry - 6;
+    const ix0 = cx - rx + 5;
+    const ix1 = cx + rx - 5;
+    const iy0 = cy - ry + 5;
+    const iy1 = cy + ry - 5;
     const innerContour = `M ${ix0 + corner - 2},${iy0} L ${ix1 - corner + 2},${iy0} Q ${ix1},${iy0} ${ix1},${iy0 + corner - 2} L ${ix1},${iy1 - corner + 2} Q ${ix1},${iy1} ${ix1 - corner + 2},${iy1} L ${ix0 + corner - 2},${iy1} Q ${ix0},${iy1} ${ix0},${iy1 - corner + 2} L ${ix0},${iy0 + corner - 2} Q ${ix0},${iy0} ${ix0 + corner - 2},${iy0} Z`;
 
     items.push({

@@ -323,32 +323,42 @@ export function SyllabusMap({
         const { x: cx, y: cy } = geo.center;
         const chLabel = chapter.codeName || chapter.name;
 
-        ctx.font = `800 15px ${FONT}`;
+        // Auto-fit font size to strictly prevent overlapping adjacent hexagons
+        const maxTextW = (geo.width || 110) * 0.82;
+        let fontSize = totalChapters > 16 ? 12 : totalChapters > 12 ? 13.5 : 15;
+        ctx.font = `800 ${fontSize}px ${FONT}`;
+        while (ctx.measureText(chLabel).width > maxTextW && fontSize > 8) {
+          fontSize -= 0.5;
+          ctx.font = `800 ${fontSize}px ${FONT}`;
+        }
         ctx.textAlign = "center";
 
         const chPercent = chTopics.length > 0 ? Math.round((doneCount / chTopics.length) * 100) : 0;
+        const subFontSize = totalChapters > 16 ? 10 : 12.5;
+        const yOffsetMain = totalChapters > 16 ? 3 : 4;
+        const yOffsetSub = totalChapters > 16 ? 13 : 16;
 
         if (isComplete) {
           ctx.fillStyle = "#ffffff";
-          ctx.fillText(chLabel, cx, cy - 4);
+          ctx.fillText(chLabel, cx, cy - yOffsetMain);
 
-          ctx.font = `700 12.5px ${FONT}`;
+          ctx.font = `700 ${subFontSize}px ${FONT}`;
           ctx.fillStyle = "#ffffff";
-          ctx.fillText("✓ শেষ", cx, cy + 16);
+          ctx.fillText("✓ শেষ", cx, cy + yOffsetSub);
         } else if (ratio >= 0.5) {
           ctx.fillStyle = "#ffffff";
-          ctx.fillText(chLabel, cx, cy - 4);
+          ctx.fillText(chLabel, cx, cy - yOffsetMain);
 
-          ctx.font = `700 12.5px ${FONT}`;
+          ctx.font = `700 ${subFontSize}px ${FONT}`;
           ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-          ctx.fillText(`${bnNum(chPercent)}%`, cx, cy + 16);
+          ctx.fillText(`${bnNum(chPercent)}%`, cx, cy + yOffsetSub);
         } else {
           ctx.fillStyle = t.ink;
-          ctx.fillText(chLabel, cx, cy - 4);
+          ctx.fillText(chLabel, cx, cy - yOffsetMain);
 
-          ctx.font = `700 12.5px ${FONT}`;
+          ctx.font = `700 ${subFontSize}px ${FONT}`;
           ctx.fillStyle = ratio > 0 ? t.v1 : t.muted;
-          ctx.fillText(`${bnNum(chPercent)}%`, cx, cy + 16);
+          ctx.fillText(`${bnNum(chPercent)}%`, cx, cy + yOffsetSub);
         }
       }
     });
@@ -783,12 +793,23 @@ export function SyllabusMap({
                     <g className="pointer-events-none select-none">
                       <text
                         x={geo.center.x}
-                        y={geo.center.y - 4}
+                        y={geo.center.y - (totalChapters > 16 ? 3 : 4)}
                         textAnchor="middle"
                         style={{
                           fontFamily:
                             '"Baloo Da 2", "Hind Siliguri", "Noto Sans Bengali", sans-serif',
-                          fontSize: "14.5px",
+                          fontSize:
+                            totalChapters > 16
+                              ? (chapter.codeName || chapter.name).length > 15
+                                ? "9.5px"
+                                : (chapter.codeName || chapter.name).length > 10
+                                  ? "10.5px"
+                                  : "12px"
+                              : totalChapters > 12
+                                ? (chapter.codeName || chapter.name).length > 14
+                                  ? "11px"
+                                  : "13px"
+                                : "14.5px",
                           fontWeight: 800,
                           fill: isComplete
                             ? "#ffffff"
@@ -802,12 +823,12 @@ export function SyllabusMap({
 
                       <text
                         x={geo.center.x}
-                        y={geo.center.y + 16}
+                        y={geo.center.y + (totalChapters > 16 ? 13 : 16)}
                         textAnchor="middle"
                         style={{
                           fontFamily:
                             '"Baloo Da 2", "Hind Siliguri", "Noto Sans Bengali", sans-serif',
-                          fontSize: "12px",
+                          fontSize: totalChapters > 16 ? "10px" : "12px",
                           fontWeight: 700,
                           fill: isComplete
                             ? "#ffffff"
