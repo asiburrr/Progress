@@ -50,7 +50,6 @@ export function MedicalProgressGraph({
 
   const buckets: ProgressBucket[] = data?.buckets || defaultBuckets;
 
-  const maxPercent = Math.max(...buckets.map((b: ProgressBucket) => b.percentageOfStudents), 10);
   const activeBucketIndex = buckets.findIndex(
     (b: ProgressBucket) => currentPercent >= b.min && currentPercent <= b.max
   );
@@ -81,75 +80,110 @@ export function MedicalProgressGraph({
         )}
       </div>
 
-      {/* Main Bar Chart (% of students on Y-axis) */}
+      {/* Main Bar Chart with Y-Axis Percentage scale and gridlines */}
       <div className="pt-2">
-        <div className="flex items-end justify-between gap-2 sm:gap-4 h-48 sm:h-52 px-1 pb-2">
-          {buckets.map((bucket, idx) => {
-            const isUserBucket = idx === activeBucketIndex;
-            const barHeightPercent =
-              maxPercent > 0
-                ? Math.max(14, (bucket.percentageOfStudents / maxPercent) * 100)
-                : 14;
+        <div className="flex gap-2 sm:gap-3">
+          {/* Y-Axis scale labels */}
+          <div className="flex flex-col justify-between text-[10px] font-semibold text-[#8a918d] pb-8 h-56 select-none text-right w-8 flex-shrink-0">
+            <span>১০০%</span>
+            <span>৭৫%</span>
+            <span>৫০%</span>
+            <span>২৫%</span>
+            <span>০%</span>
+          </div>
 
-            return (
-              <div
-                key={bucket.label}
-                className="flex-1 flex flex-col items-center h-full justify-end group relative"
-              >
-                {/* Value above bar: Percentage of Students */}
-                <div className="mb-1.5 text-center">
-                  <span
-                    className={`text-[11px] sm:text-xs font-black block transition-all ${isUserBucket
-                      ? "text-[#0f6b4f] scale-110"
-                      : "text-[#626965]"
-                      }`}
-                  >
-                    {bnNum(bucket.percentageOfStudents)}%
-                  </span>
-                  <span className="text-[9px] text-[#8a918d] font-semibold hidden sm:block">
-                    শিক্ষার্থী
-                  </span>
-                </div>
+          {/* Chart plotting area */}
+          <div className="flex-1 relative flex flex-col justify-between h-56 pb-8">
+            {/* Background horizontal dashed gridlines */}
+            <div className="absolute inset-0 pb-8 flex flex-col justify-between pointer-events-none">
+              <div className="border-b border-dashed border-[#ebe6dc] w-full" />
+              <div className="border-b border-dashed border-[#ebe6dc] w-full" />
+              <div className="border-b border-dashed border-[#ebe6dc] w-full" />
+              <div className="border-b border-dashed border-[#ebe6dc] w-full" />
+              <div className="border-b-2 border-[#cfc7b8] w-full" />
+            </div>
 
-                {/* Animated Bar */}
-                <div className="w-full max-w-[54px] bg-[#f0eae1] rounded-t-xl overflow-hidden relative flex flex-col justify-end h-full max-h-[140px]">
+            {/* Bars */}
+            <div className="relative z-10 h-full flex items-end justify-between gap-2 sm:gap-4 px-1 sm:px-2">
+              {buckets.map((bucket, idx) => {
+                const isUserBucket = idx === activeBucketIndex;
+                const percentVal = bucket.percentageOfStudents;
+                // Height accurately reflects the 0-100% percentage on the Y-axis
+                const barHeightPercent =
+                  percentVal > 0 ? Math.max(3, Math.min(100, percentVal)) : 0;
+
+                return (
                   <div
-                    className={`w-full rounded-t-xl transition-all duration-700 relative ${isUserBucket
-                      ? "bg-gradient-to-t from-[#093e2e] via-[#0f6b4f] to-[#1f9a70] shadow-md"
-                      : "bg-gradient-to-t from-[#cfc7b8] to-[#b3a895] hover:opacity-90"
-                      }`}
-                    style={{ height: `${barHeightPercent}%` }}
+                    key={bucket.label}
+                    className="flex-1 flex flex-col items-center h-full justify-end group relative"
                   >
-                    {/* User Pin / Crown indicator */}
+                    {/* Value above bar: Percentage of Students */}
+                    <div className="mb-1.5 text-center">
+                      <span
+                        className={`text-[11px] sm:text-xs font-black block transition-all ${
+                          isUserBucket
+                            ? "text-[#0f6b4f] scale-110"
+                            : percentVal > 0
+                            ? "text-[#17201c]"
+                            : "text-[#8a918d]"
+                        }`}
+                      >
+                        {bnNum(percentVal)}%
+                      </span>
+                      <span className="text-[9px] text-[#8a918d] font-semibold hidden sm:block">
+                        শিক্ষার্থী
+                      </span>
+                    </div>
+
+                    {/* Bar Column (no misleading solid grey track) */}
+                    <div className="w-full max-w-[50px] relative flex flex-col justify-end h-full">
+                      {/* Subtle hover background highlight */}
+                      <div className="absolute inset-0 bg-[#0f6b4f]/5 rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                      {/* The animated filled bar */}
+                      <div
+                        className={`w-full rounded-t-lg transition-all duration-700 relative ${
+                          isUserBucket
+                            ? "bg-gradient-to-t from-[#093e2e] via-[#0f6b4f] to-[#1f9a70] shadow-md ring-1 ring-[#0f6b4f]/30"
+                            : percentVal > 0
+                            ? "bg-gradient-to-t from-[#0f6b4f]/40 to-[#1f9a70]/50 hover:from-[#0f6b4f]/50 hover:to-[#1f9a70]/60"
+                            : "h-0"
+                        }`}
+                        style={{ height: `${barHeightPercent}%` }}
+                      >
+                        {/* User Pin / Crown indicator */}
+                        {isUserBucket && percentVal > 0 && (
+                          <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-300 shadow-xs ring-2 ring-white/60" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* X-axis Label (Progress Tier) */}
+                    <div className="mt-2 text-center">
+                      <span
+                        className={`text-[11px] sm:text-xs font-bold block ${
+                          isUserBucket ? "text-[#0f6b4f] font-black" : "text-[#17201c]"
+                        }`}
+                      >
+                        {bucket.label}
+                      </span>
+                      <span className="text-[9px] text-[#8a918d] font-semibold">
+                        প্রগ্রেস
+                      </span>
+                    </div>
+
+                    {/* Active User Indicator Tag */}
                     {isUserBucket && (
-                      <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-amber-300 shadow-xs ring-2 ring-white/50" />
+                      <div className="absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#0f6b4f] text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 z-20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-ping" />
+                        <span>আপনার অবস্থান</span>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {/* X-axis Label (Progress Tier) */}
-                <div className="mt-2 text-center">
-                  <span
-                    className={`text-[11px] sm:text-xs font-bold block ${isUserBucket ? "text-[#0f6b4f] font-black" : "text-[#17201c]"
-                      }`}
-                  >
-                    {bucket.label}
-                  </span>
-                  <span className="text-[9px] text-[#8a918d] font-semibold">
-                    প্রগ্রেস
-                  </span>
-                </div>
-
-                {/* Active User Indicator Tag */}
-                {isUserBucket && (
-                  <div className="absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#0f6b4f] text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 z-10">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-ping" />
-                    <span>আপনার অবস্থান</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
