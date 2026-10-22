@@ -14,6 +14,7 @@ import { MapStyleType } from "@/data/map-geometries";
 import { bnNum } from "@/data/map-data";
 import { InAppBrowserAlert } from "@/components/in-app-browser-alert";
 import { AuthModal, UserAccount } from "@/components/auth-modal";
+import { CloudSavePrompt } from "@/components/cloud-save-prompt";
 import { fetchCurrentUser, logoutUser, saveProgressToCloud } from "@/lib/student-tracker";
 
 export type TrackMode = "hsc" | "medical";
@@ -30,6 +31,7 @@ export default function Home() {
   const [medicalViewType, setMedicalViewType] = useState<"card" | "map">("card");
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [showCloudPrompt, setShowCloudPrompt] = useState(false);
   const chapterSectionRef = React.useRef<HTMLDivElement>(null);
 
   const [isMounted, setIsMounted] = useState(false);
@@ -180,7 +182,24 @@ export default function Home() {
     }
   };
 
+  const promptDismissedAtRef = React.useRef<number>(0);
+
+  const triggerCloudPromptIfNeeded = () => {
+    if (!currentUser) {
+      const now = Date.now();
+      if (now - promptDismissedAtRef.current > 3 * 60 * 1000) {
+        setShowCloudPrompt(true);
+      }
+    }
+  };
+
+  const handleDismissCloudPrompt = () => {
+    promptDismissedAtRef.current = Date.now();
+    setShowCloudPrompt(false);
+  };
+
   const handleToggleTopic = (topicId: string) => {
+    triggerCloudPromptIfNeeded();
     setCompletedTopics((prev) => {
       const next = new Set(prev);
       if (next.has(topicId)) {
@@ -193,6 +212,7 @@ export default function Home() {
   };
 
   const handleToggleChapter = (chapter: Chapter) => {
+    triggerCloudPromptIfNeeded();
     setCompletedTopics((prev) => {
       const next = new Set(prev);
       const isChapterComplete =
@@ -209,6 +229,7 @@ export default function Home() {
   };
 
   const handleSelectAllSubject = (sub: Subject) => {
+    triggerCloudPromptIfNeeded();
     setCompletedTopics((prev) => {
       const next = new Set(prev);
       sub.chapters.forEach((ch) => {
@@ -713,6 +734,16 @@ export default function Home() {
           percent: hscOverallStats.percent,
         }}
         onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* Centered Modal Cloud Save Prompt when tapping progress without login */}
+      <CloudSavePrompt
+        isOpen={showCloudPrompt && !currentUser}
+        onOpenAccount={() => {
+          setShowCloudPrompt(false);
+          setAuthModalOpen(true);
+        }}
+        onDismiss={handleDismissCloudPrompt}
       />
     </div>
   );
