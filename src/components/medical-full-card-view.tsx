@@ -6,6 +6,8 @@ import { UNSEEN_THEMES, bnNum } from "@/data/map-data";
 import { Icon } from "@iconify/react";
 import { MedicalProgressGraph } from "./medical-progress-graph";
 import { syncStudentProgressToDb } from "@/lib/student-tracker";
+import { InAppDownloadModal } from "./in-app-download-modal";
+import { isInAppBrowser } from "@/lib/in-app-browser";
 
 export interface MedicalSubjectStat {
   id: string;
@@ -40,6 +42,8 @@ export function MedicalFullCardView({
 }: MedicalFullCardViewProps) {
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<"png" | "jpeg" | null>(null);
+  const [inAppModalOpen, setInAppModalOpen] = useState(false);
+  const [pendingDownloadFormat, setPendingDownloadFormat] = useState<"png" | "jpeg" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentTheme =
@@ -400,7 +404,16 @@ export function MedicalFullCardView({
     return canvas.toDataURL(format === "png" ? "image/png" : "image/jpeg", 0.95);
   };
 
-  const handleDownload = async (format: "png" | "jpeg") => {
+  const handleDownload = (format: "png" | "jpeg") => {
+    if (isInAppBrowser()) {
+      setPendingDownloadFormat(format);
+      setInAppModalOpen(true);
+      return;
+    }
+    executeDownload(format);
+  };
+
+  const executeDownload = async (format: "png" | "jpeg") => {
     try {
       setIsDownloading(format);
       const dataUrl = await generatePosterImage(format);
@@ -417,6 +430,7 @@ export function MedicalFullCardView({
       setIsDownloading(null);
     }
   };
+
 
   return (
     <div className="w-full flex flex-col space-y-4">
@@ -749,29 +763,22 @@ export function MedicalFullCardView({
         </div>
       </div>
 
-      {/* 3. "ডাউনলোড করুন" Box AFTER the Card */}
-      <div className="bg-white rounded-2xl border border-[#ebe6dc] p-3.5 sm:p-4 shadow-xs space-y-2.5 order-3">
-        <h3 className="text-xs sm:text-sm font-extrabold text-[#17201c]">
-          ডাউনলোড করুন
-        </h3>
+      {/* 3. "ডাউনলোড করুন" Box */}
+      <div className="bg-white rounded-2xl border border-[#ebe6dc] p-3.5 sm:p-4 shadow-xs space-y-3 order-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-extrabold text-[#17201c]">
+            কার্ড ডাউনলোড করুন
+          </h3>
+        </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div>
           <button
             onClick={() => handleDownload("png")}
             disabled={isDownloading !== null}
-            className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 bg-[#17201c] hover:bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl transition cursor-pointer shadow-xs disabled:opacity-50"
+            className="w-full inline-flex items-center justify-center gap-2 bg-[#17201c] hover:bg-black text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition cursor-pointer shadow-xs disabled:opacity-50"
           >
-            <Icon icon="solar:download-minimalistic-bold" className="w-3.5 h-3.5" />
-            <span>{isDownloading === "png" ? "তৈরি হচ্ছে..." : "↓ PNG"}</span>
-          </button>
-
-          <button
-            onClick={() => handleDownload("jpeg")}
-            disabled={isDownloading !== null}
-            className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 bg-white hover:bg-[#faf8f4] border border-[#ebe6dc] text-[#17201c] text-xs font-bold px-3 py-2.5 rounded-xl transition cursor-pointer shadow-xs disabled:opacity-50"
-          >
-            <Icon icon="solar:gallery-download-bold" className="w-3.5 h-3.5" />
-            <span>{isDownloading === "jpeg" ? "তৈরি হচ্ছে..." : "↓ JPEG"}</span>
+            <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4" />
+            <span>{isDownloading !== null ? "তৈরি হচ্ছে..." : "ডাউনলোড করুন"}</span>
           </button>
         </div>
       </div>
@@ -783,6 +790,17 @@ export function MedicalFullCardView({
           totalScore={totalMedicalScore}
         />
       </div>
+
+      {/* In-App Browser Download Modal */}
+      <InAppDownloadModal
+        isOpen={inAppModalOpen}
+        onClose={() => setInAppModalOpen(false)}
+        onProceedAnyway={() => {
+          if (pendingDownloadFormat) {
+            executeDownload(pendingDownloadFormat);
+          }
+        }}
+      />
     </div>
   );
 }

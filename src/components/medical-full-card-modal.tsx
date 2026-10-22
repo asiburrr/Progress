@@ -4,6 +4,8 @@ import React, { useState, useRef } from "react";
 import { MEDICAL_SUBJECTS, MEDICAL_WEIGHTS } from "@/data/medical-syllabus";
 import { UNSEEN_THEMES, bnNum } from "@/data/map-data";
 import { Icon } from "@iconify/react";
+import { InAppDownloadModal } from "./in-app-download-modal";
+import { isInAppBrowser } from "@/lib/in-app-browser";
 
 interface MedicalSubjectStat {
   id: string;
@@ -39,6 +41,7 @@ export function MedicalFullCardModal({
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"png" | "jpeg">("png");
+  const [inAppModalOpen, setInAppModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentTheme =
@@ -411,7 +414,15 @@ export function MedicalFullCardModal({
     return canvas.toDataURL(format === "png" ? "image/png" : "image/jpeg", 0.95);
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
+    if (isInAppBrowser()) {
+      setInAppModalOpen(true);
+      return;
+    }
+    executeDownload();
+  };
+
+  const executeDownload = async () => {
     try {
       setIsGenerating(true);
       const dataUrl = await generateFullCardCanvas(downloadFormat);
@@ -563,6 +574,12 @@ export function MedicalFullCardModal({
           </div>
         </div>
       </div>
+
+      <InAppDownloadModal
+        isOpen={inAppModalOpen}
+        onClose={() => setInAppModalOpen(false)}
+        onProceedAnyway={executeDownload}
+      />
     </div>
   );
 }

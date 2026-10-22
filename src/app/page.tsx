@@ -12,6 +12,9 @@ import { fetchSubjects } from "@/services/api";
 import { Icon } from "@iconify/react";
 import { MapStyleType } from "@/data/map-geometries";
 import { bnNum } from "@/data/map-data";
+import { InAppBrowserAlert } from "@/components/in-app-browser-alert";
+import { AuthModal, UserAccount } from "@/components/auth-modal";
+import { fetchCurrentUser, logoutUser, saveProgressToCloud } from "@/lib/student-tracker";
 
 export type TrackMode = "hsc" | "medical";
 
@@ -25,6 +28,8 @@ export default function Home() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [isMedicalCardModalOpen, setIsMedicalCardModalOpen] = useState(false);
   const [medicalViewType, setMedicalViewType] = useState<"card" | "map">("card");
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const chapterSectionRef = React.useRef<HTMLDivElement>(null);
 
   const [isMounted, setIsMounted] = useState(false);
@@ -32,23 +37,88 @@ export default function Home() {
     () => new Set<string>()
   );
 
+  // All topic IDs belonging to Medical
+  const ALL_MEDICAL_TOPIC_IDS = useMemo(() => {
+    const ids = new Set<string>();
+    MEDICAL_SUBJECTS.forEach((sub) => {
+      sub.chapters.forEach((ch) => {
+        ch.topics.forEach((t) => ids.add(t.id));
+      });
+    });
+    return ids;
+  }, []);
+
+  // All topic IDs belonging to HSC Academic
+  const ALL_HSC_TOPIC_IDS = useMemo(() => {
+    const ids = new Set<string>();
+    hscSubjects.forEach((sub) => {
+      sub.chapters.forEach((ch) => {
+        ch.topics.forEach((t) => ids.add(t.id));
+      });
+    });
+    return ids;
+  }, [hscSubjects]);
+
+  // Initial load: strictly separate logged-in accounts from local guest progress
   useEffect(() => {
     setIsMounted(true);
-    try {
-      const savedTopics = localStorage.getItem("hsc_completed_topics_v3");
-      if (savedTopics) {
-        setCompletedTopics(new Set(JSON.parse(savedTopics)));
-      }
-      const savedMode = localStorage.getItem("bob_track_mode") as TrackMode | null;
-      if (savedMode === "hsc" || savedMode === "medical") {
-        setTrackMode(savedMode);
-        if (savedMode === "medical") {
-          setActiveSubjectId(MEDICAL_SUBJECTS[0].id);
+
+    async function initSession() {
+      try {
+        const savedMode = localStorage.getItem("bob_track_mode") as TrackMode | null;
+        if (savedMode === "hsc" || savedMode === "medical") {
+          setTrackMode(savedMode);
+          if (savedMode === "medical") {
+            setActiveSubjectId(MEDICAL_SUBJECTS[0].id);
+          }
         }
+
+        // Check for locally remembered account (1-year persistence)
+        const cachedUserStr = localStorage.getItem("bob_cached_user");
+        if (cachedUserStr) {
+          try {
+            const cachedUser = JSON.parse(cachedUserStr);
+            if (cachedUser && cachedUser.name) {
+              setCurrentUser(cachedUser);
+              if (cachedUser.name) setStudentName(cachedUser.name);
+              const cloudTopics = [
+                ...(cachedUser.medicalProgress?.completedTopicIds || []),
+                ...(cachedUser.academicProgress?.completedTopicIds || []),
+              ];
+              setCompletedTopics(new Set(cloudTopics));
+            }
+          } catch {}
+        }
+
+        // Verify/fetch fresh status from server (cookie / header)
+        const user = await fetchCurrentUser();
+        if (user) {
+          // Logged in: LOAD DIRECTLY FROM ACCOUNT, NEVER FROM LOCAL STORAGE
+          setCurrentUser(user);
+          if (user.name) setStudentName(user.name);
+
+          const cloudTopics = [
+            ...(user.medicalProgress?.completedTopicIds || []),
+            ...(user.academicProgress?.completedTopicIds || []),
+          ];
+          setCompletedTopics(new Set(cloudTopics));
+        } else if (!cachedUserStr) {
+          // Not logged in: LOAD FROM LOCAL STORAGE FOR GUEST
+          const savedTopics = localStorage.getItem("hsc_completed_topics_v3");
+          if (savedTopics) {
+            try {
+              setCompletedTopics(new Set(JSON.parse(savedTopics)));
+            } catch {}
+          }
+          const savedName = localStorage.getItem("bob_student_name_v1");
+          if (savedName) setStudentName(savedName);
+        }
+      } catch (e) {
+        console.error("Failed to initialize session/storage:", e);
       }
-    } catch (e) {
-      console.error("Failed to load progress from localStorage", e);
     }
+
+    initSession();
   }, []);
 
   useEffect(() => {
@@ -65,18 +135,20 @@ export default function Home() {
     loadData();
   }, []);
 
+  // For guests (not logged in): save progress locally
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || currentUser) return; // Only when NOT logged in!
     try {
       localStorage.setItem(
         "hsc_completed_topics_v3",
         JSON.stringify(Array.from(completedTopics))
       );
+      localStorage.setItem("bob_student_name_v1", studentName);
       localStorage.setItem("bob_track_mode", trackMode);
     } catch (e) {
       console.error("Failed to save progress to localStorage", e);
     }
-  }, [completedTopics, trackMode, isMounted]);
+  }, [completedTopics, studentName, trackMode, isMounted, currentUser]);
 
   const currentSubjects = trackMode === "medical" ? MEDICAL_SUBJECTS : hscSubjects;
 
@@ -217,8 +289,101 @@ export default function Home() {
       ? Math.round(medicalTotalScore)
       : hscOverallStats.percent;
 
+  // For logged in users: save properly to Cloud Account
+  useEffect(() => {
+    if (!currentUser || !isMounted) return;
+    const timer = setTimeout(() => {
+      const medTopics = Array.from(completedTopics).filter((id) =>
+        ALL_MEDICAL_TOPIC_IDS.has(id)
+      );
+      const hscTopics = Array.from(completedTopics).filter((id) =>
+        ALL_HSC_TOPIC_IDS.has(id)
+      );
+
+      saveProgressToCloud({
+        studentName,
+        medicalProgress: {
+          completedTopicIds: medTopics,
+          percent: Math.round(medicalTotalScore),
+          score: medicalTotalScore,
+        },
+        academicProgress: {
+          completedTopicIds: hscTopics,
+          percent: hscOverallStats.percent,
+        },
+        trackType: trackMode === "medical" ? "medical" : "academic",
+      });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [
+    completedTopics,
+    studentName,
+    trackMode,
+    medicalTotalScore,
+    hscOverallStats.percent,
+    currentUser,
+    isMounted,
+    ALL_MEDICAL_TOPIC_IDS,
+    ALL_HSC_TOPIC_IDS,
+  ]);
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
+    // Restore local guest progress cleanly
+    const savedTopics = localStorage.getItem("hsc_completed_topics_v3");
+    setCompletedTopics(new Set(savedTopics ? JSON.parse(savedTopics) : []));
+    setStudentName(localStorage.getItem("bob_student_name_v1") || "");
+  };
+
+  const handleAuthSuccess = (user: UserAccount) => {
+    setCurrentUser(user);
+    if (user.name) setStudentName(user.name);
+
+    const accountMedTopics = user.medicalProgress?.completedTopicIds || [];
+    const accountAcadTopics = user.academicProgress?.completedTopicIds || [];
+
+    // Current local topics selected before logging in / registering
+    const localMedTopics = Array.from(completedTopics).filter((id) =>
+      ALL_MEDICAL_TOPIC_IDS.has(id)
+    );
+    const localAcadTopics = Array.from(completedTopics).filter((id) =>
+      ALL_HSC_TOPIC_IDS.has(id)
+    );
+
+    // If account has no data for med, preserve current local; otherwise use account's data
+    const finalMedTopics = accountMedTopics.length > 0 ? accountMedTopics : localMedTopics;
+    // If account has no data for acad, preserve current local; otherwise use account's data
+    const finalAcadTopics = accountAcadTopics.length > 0 ? accountAcadTopics : localAcadTopics;
+
+    const mergedTopics = new Set([...finalMedTopics, ...finalAcadTopics]);
+    setCompletedTopics(mergedTopics);
+
+    // If account was empty for either track, save the populated current local progress into DB
+    const medWasEmpty = accountMedTopics.length === 0 && localMedTopics.length > 0;
+    const acadWasEmpty = accountAcadTopics.length === 0 && localAcadTopics.length > 0;
+
+    if (medWasEmpty || acadWasEmpty) {
+      saveProgressToCloud({
+        studentName: user.name || studentName,
+        medicalProgress: {
+          completedTopicIds: finalMedTopics,
+          percent: Math.round(medicalTotalScore),
+          score: medicalTotalScore,
+        },
+        academicProgress: {
+          completedTopicIds: finalAcadTopics,
+          percent: hscOverallStats.percent,
+        },
+        trackType: trackMode === "medical" ? "medical" : "academic",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#faf8f4] text-[#17201c] flex flex-col font-sans">
+      {/* In-App Browser Warning Alert */}
+      <InAppBrowserAlert />
       <header className="max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 border-b border-[#ebe6dc]/70 bg-[#faf8f4]/95 sticky top-0 z-30">
         <div className="flex items-center gap-2.5 min-w-0">
           <div
@@ -258,6 +423,30 @@ export default function Home() {
               <Icon icon="solar:check-circle-bold" className="w-3.5 h-3.5 text-[#0f6b4f]" />
               <span suppressHydrationWarning>{bnNum(currentPercent)}% সম্পন্ন</span>
             </div>
+          )}
+
+          {/* User Account / Login Button */}
+          {currentUser ? (
+            <div className="inline-flex items-center gap-1.5 bg-white border border-[#ded8cc] pl-2.5 pr-1.5 py-1 rounded-full text-xs font-bold text-[#17201c] shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="max-w-[90px] sm:max-w-[120px] truncate">{currentUser.name}</span>
+              <button
+                onClick={handleLogout}
+                className="p-1 hover:bg-[#f3efe7] rounded-full text-[#8a918d] hover:text-red-600 transition cursor-pointer"
+                title="লগআউট"
+              >
+                <Icon icon="solar:logout-2-linear" className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAuthModalOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1 bg-[#0f6b4f] hover:bg-[#093e2e] text-white text-xs font-bold rounded-full transition shadow-xs cursor-pointer"
+              title="একাউন্টে প্রগ্রেস সেভ রাখুন"
+            >
+              <Icon icon="solar:user-bold" className="w-3.5 h-3.5" />
+              <span>একাউন্ট</span>
+            </button>
           )}
         </div>
       </header>
@@ -507,6 +696,23 @@ export default function Home() {
         studentName={studentName}
         setStudentName={setStudentName}
         activeThemeId={activeThemeId}
+      />
+
+      {/* Optional Account Register / Login Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialStudentName={studentName}
+        currentMedicalProgress={{
+          completedTopicIds: Array.from(completedTopics).filter((id) => ALL_MEDICAL_TOPIC_IDS.has(id)),
+          percent: Math.round(medicalTotalScore),
+          score: medicalTotalScore,
+        }}
+        currentAcademicProgress={{
+          completedTopicIds: Array.from(completedTopics).filter((id) => ALL_HSC_TOPIC_IDS.has(id)),
+          percent: hscOverallStats.percent,
+        }}
+        onAuthSuccess={handleAuthSuccess}
       />
     </div>
   );

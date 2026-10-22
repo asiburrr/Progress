@@ -13,6 +13,8 @@ import {
 } from "@/data/map-geometries";
 import { calculateStudentRank } from "@/services/api";
 import { Icon } from "@iconify/react";
+import { InAppDownloadModal } from "./in-app-download-modal";
+import { isInAppBrowser } from "@/lib/in-app-browser";
 
 interface SyllabusMapProps {
   subject: Subject;
@@ -67,6 +69,8 @@ export function SyllabusMap({
     null
   );
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [inAppModalOpen, setInAppModalOpen] = useState(false);
+  const [pendingDownloadFormat, setPendingDownloadFormat] = useState<"png" | "jpeg" | null>(null);
   const mapSvgContainerRef = useRef<HTMLDivElement>(null);
 
   const totalTopics = subject.chapters.reduce(
@@ -427,7 +431,16 @@ export function SyllabusMap({
     return canvas.toDataURL(format === "png" ? "image/png" : "image/jpeg", 0.95);
   };
 
-  const handleDownload = async (format: "png" | "jpeg") => {
+  const handleDownload = (format: "png" | "jpeg") => {
+    if (isInAppBrowser()) {
+      setPendingDownloadFormat(format);
+      setInAppModalOpen(true);
+      return;
+    }
+    executeDownload(format);
+  };
+
+  const executeDownload = async (format: "png" | "jpeg") => {
     try {
       setIsDownloading(format);
       const dataUrl = await generatePosterImage(format);
@@ -1128,6 +1141,17 @@ export function SyllabusMap({
           </div>
         </div>
       </div>
+
+      {/* In-App Browser Download Modal */}
+      <InAppDownloadModal
+        isOpen={inAppModalOpen}
+        onClose={() => setInAppModalOpen(false)}
+        onProceedAnyway={() => {
+          if (pendingDownloadFormat) {
+            executeDownload(pendingDownloadFormat);
+          }
+        }}
+      />
     </div>
   );
 }
