@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { MEDICAL_SUBJECTS, MEDICAL_WEIGHTS } from "@/data/medical-syllabus";
 import { UNSEEN_THEMES, bnNum } from "@/data/map-data";
 import { Icon } from "@iconify/react";
+import { MedicalProgressGraph } from "./medical-progress-graph";
+import { syncStudentProgressToDb } from "@/lib/student-tracker";
 
 export interface MedicalSubjectStat {
   id: string;
@@ -89,6 +91,19 @@ export function MedicalFullCardView({
     if (totalMedicalScore >= 40) return { title: "চলমান প্রস্তুতি", percentile: "৫০" };
     return { title: "প্রস্তুতি শুরু হয়েছে", percentile: "৯০" };
   }, [totalMedicalScore]);
+
+  // Debounced sync of student progress & name to PostgreSQL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncStudentProgressToDb({
+        studentName,
+        progressPercent: overallPercent,
+        completedTopics: completedTopicsCount,
+        totalScore: totalMedicalScore,
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [studentName, overallPercent, completedTopicsCount, totalMedicalScore]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -569,8 +584,7 @@ export function MedicalFullCardView({
             return (
               <div
                 key={item.id}
-                onClick={() => onSelectSubject?.(item.id)}
-                className={`p-2.5 sm:p-3 rounded-xl transition cursor-pointer flex flex-col justify-between space-y-1.5 shadow-xs ${isLast ? "sm:col-span-2" : ""
+                className={`p-2.5 sm:p-3 rounded-xl flex flex-col justify-between space-y-1.5 shadow-xs ${isLast ? "sm:col-span-2" : ""
                   }`}
                 style={{
                   backgroundColor:
@@ -578,7 +592,6 @@ export function MedicalFullCardView({
                       ? "rgba(255, 255, 255, 0.05)"
                       : "#ffffff",
                 }}
-                title="এই বিষয়ের অধ্যায় ও টপিক দেখতে ক্লিক করুন"
               >
                 {/* Top Line: Name on Left, Score on Right */}
                 <div className="flex items-center justify-between gap-1.5">
@@ -761,6 +774,14 @@ export function MedicalFullCardView({
             <span>{isDownloading === "jpeg" ? "তৈরি হচ্ছে..." : "↓ JPEG"}</span>
           </button>
         </div>
+      </div>
+
+      {/* 4. Live Student Progress Percentage Distribution Graph */}
+      <div className="order-4">
+        <MedicalProgressGraph
+          currentPercent={overallPercent}
+          totalScore={totalMedicalScore}
+        />
       </div>
     </div>
   );

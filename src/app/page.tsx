@@ -320,7 +320,7 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <Icon icon="solar:stethoscope-bold" className="w-4 h-4 text-[#b91c1c]" />
                 <span className="text-xs sm:text-sm font-extrabold text-[#17201c]">
-                  মেডিকেল ভর্তি পরীক্ষার ১০০ নম্বর প্রস্তুতি স্কোরবোর্ড
+                  বিষয় নির্বাচন করুন
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
@@ -370,74 +370,48 @@ export default function Home() {
           </div>
         )}
 
-        {/* Subject Selector */}
-        <div className="bg-white rounded-2xl border border-[#ebe6dc] p-3.5 sm:p-4 shadow-xs space-y-2.5">
-          <div className="flex items-center justify-between border-b border-[#ebe6dc] pb-2 px-1">
-            <span className="text-xs font-bold text-[#17201c] flex items-center gap-1.5">
-              <Icon
-                icon={trackMode === "medical" ? "solar:stethoscope-bold" : "solar:book-bookmark-bold"}
-                className={`w-4 h-4 ${trackMode === "medical" ? "text-[#b91c1c]" : "text-[#0f6b4f]"}`}
-              />
-              <span>
-                {trackMode === "medical"
-                  ? "বিষয় নির্বাচন করুন"
-                  : "বিষয় নির্বাচন করুন"}
+        {/* Subject Selector (Active in HSC Mode; Medical mode uses the upper 100-mark Scoreboard) */}
+        {trackMode !== "medical" && (
+          <div className="bg-white rounded-2xl border border-[#ebe6dc] p-3.5 sm:p-4 shadow-xs space-y-2.5">
+            <div className="flex items-center justify-between border-b border-[#ebe6dc] pb-2 px-1">
+              <span className="text-xs font-bold text-[#17201c] flex items-center gap-1.5">
+                <Icon
+                  icon="solar:book-bookmark-bold"
+                  className="w-4 h-4 text-[#0f6b4f]"
+                />
+                <span>বিষয় নির্বাচন করুন</span>
               </span>
-            </span>
-            <span
-              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${trackMode === "medical"
-                ? "text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca]"
-                : "text-[#0f6b4f] bg-[#e3f0ea]"
-                }`}
-            >
-              {trackMode === "medical" ? "৭টি বিষয়" : "৯টি বিষয়"}
-            </span>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-[#0f6b4f] bg-[#e3f0ea]">
+                ৯টি বিষয়
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {currentSubjects.map((sub) => {
+                const isActive = sub.id === activeSubjectId;
+
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => handleSelectSubject(sub.id)}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-left ${isActive
+                      ? "bg-[#0f6b4f] text-white shadow-xs scale-[1.01]"
+                      : "bg-[#f3efe7] text-[#17201c] hover:bg-[#e8e2d5] border border-[#e4ded3]"
+                      }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon
+                        icon={sub.icon}
+                        className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-[#0f6b4f]"}`}
+                      />
+                      <span className="truncate">{sub.name}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {currentSubjects.map((sub) => {
-              const isActive = sub.id === activeSubjectId;
-              const medMeta = trackMode === "medical" ? MEDICAL_WEIGHTS[sub.id] : null;
-
-              return (
-                <button
-                  key={sub.id}
-                  onClick={() => handleSelectSubject(sub.id)}
-                  className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-left ${isActive
-                    ? trackMode === "medical"
-                      ? "bg-[#b91c1c] text-white shadow-xs scale-[1.01]"
-                      : "bg-[#0f6b4f] text-white shadow-xs scale-[1.01]"
-                    : "bg-[#f3efe7] text-[#17201c] hover:bg-[#e8e2d5] border border-[#e4ded3]"
-                    }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Icon
-                      icon={sub.icon}
-                      className={`w-4 h-4 flex-shrink-0 ${isActive
-                        ? "text-white"
-                        : trackMode === "medical"
-                          ? "text-[#b91c1c]"
-                          : "text-[#0f6b4f]"
-                        }`}
-                    />
-                    <span className="truncate">{sub.name}</span>
-                  </div>
-
-                  {medMeta && (
-                    <span
-                      className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md flex-shrink-0 ${isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-[#b91c1c]/10 text-[#b91c1c]"
-                        }`}
-                    >
-                      {bnNum(medMeta.marks)}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {/* Chapter Checklist & Interactive Map */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
